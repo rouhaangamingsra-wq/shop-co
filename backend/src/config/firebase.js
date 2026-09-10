@@ -55,22 +55,31 @@ function loadServiceAccount() {
   return null;
 }
 
-const serviceAccount = loadServiceAccount();
-export const firebaseEnabled = Boolean(serviceAccount);
+let serviceAccount = loadServiceAccount();
+export let firebaseEnabled = Boolean(serviceAccount);
 
 let auth;
 let db;
 
 if (firebaseEnabled) {
-  if (admin.apps.length === 0) {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-  }
+  try {
+    if (admin.apps.length === 0) {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+    }
 
-  auth = admin.auth();
-  db = admin.firestore();
-} else {
+    auth = admin.auth();
+    db = admin.firestore();
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Firebase Admin init failed, falling back to mock mode:', err.message);
+    firebaseEnabled = false;
+    serviceAccount = null;
+  }
+}
+
+if (!firebaseEnabled) {
   // ---- Mock auth: accepts any non-empty token -----------------------------
   auth = {
     async verifyIdToken(token) {
